@@ -95,17 +95,85 @@
       </a>
     </section>
 
-    <!-- Community Section -->
-    <section id="join" class="bg-white text-black px-6 py-16 md:py-24 text-center">
-      <h2 class="text-3xl font-bold uppercase mb-4">Bosverse is Coming</h2>
-      <p class="text-sm md:text-lg mb-6 max-w-xl mx-auto">Not a club. A movement. No points. Just respect. Be the first in.</p>
-      <form class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-6">
-        <input type="email" placeholder="Your Email" class="px-4 py-3 border border-black w-full sm:w-auto text-sm tracking-wide uppercase">
-        <a  here ="https://reginaldmen.com" class="dopamine-bg text-black px-6 py-3 font-bold uppercase tracking-wider hover:opacity-80> 
-          Join Early
-        </a>
-      </form>
-    </section>
+   <!-- Community / Contact Section -->
+<section id="join" class="bg-white text-black px-6 py-16 md:py-24 text-center">
+  <h2 class="text-3xl font-bold uppercase mb-4">Bosverse is Coming</h2>
+  <p class="text-sm md:text-lg mb-6 max-w-xl mx-auto">
+    Not a club. A movement. No points. Just respect. Be the first in.
+  </p>
+  <form id="contact-form" class="flex flex-col gap-4 mt-6 max-w-xl mx-auto text-left">
+    <input 
+      type="text" 
+      name="name"
+      placeholder="Full Name" 
+      class="px-4 py-3 border border-black w-full text-sm tracking-wide uppercase" 
+      required
+    />
+
+    <input 
+      type="tel" 
+      name="phone"
+      placeholder="Phone Number" 
+      class="px-4 py-3 border border-black w-full text-sm tracking-wide uppercase" 
+      required
+    />
+
+    <input 
+      type="email" 
+      name="email"
+      placeholder="Email Address" 
+      class="px-4 py-3 border border-black w-full text-sm tracking-wide uppercase" 
+      required
+    />
+
+    <textarea 
+      name="message"
+      placeholder="Your Message / Query" 
+      class="px-4 py-3 border border-black w-full text-sm tracking-wide uppercase h-32 resize-none"
+      required
+    ></textarea>
+
+    <button 
+      type="submit" 
+      class="dopamine-bg text-black px-6 py-3 font-bold uppercase tracking-wider hover:opacity-80 w-full sm:w-auto"
+    >
+      Join Early
+    </button>
+  </form>
+
+  <!-- Success Message -->
+  <p id="success-msg" class="mt-4 text-green-600 font-bold hidden">Submitted successfully!</p>
+</section>
+
+<script>
+  const form = document.getElementById("contact-form");
+  const successMsg = document.getElementById("success-msg");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const formData = {
+      name: form.name.value,
+      phone: form.phone.value,
+      email: form.email.value,
+      message: form.message.value,
+    };
+
+    fetch("https://script.google.com/macros/s/AKfycbz1RNmHXn00xghYwT0QBwDmPGD7Fk846jxEnRmLPUUc0kyRfKBH2l7crLB0NYO0HJEMPA/exec", {
+      method: "POST",
+      body: JSON.stringify(formData),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.result === "success") {
+          successMsg.classList.remove("hidden");
+          form.reset();
+        }
+      })
+      .catch((err) => console.error("Error:", err));
+  });
+</script>
+
 
     <!-- Footer -->
     <footer class="bg-black text-white text-center text-xs py-6 uppercase border-t border-white">
