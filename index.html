@@ -35,6 +35,42 @@
 </head>
 
 <body class="bg-black text-white font-mono no-radius">
+     
+<!-- Navigation Header -->
+<header class="bg-black text-white px-6 py-4 flex justify-between items-center sticky top-0 z-50 border-b border-gray-700">
+  <!-- Logo -->
+  <div class="flex items-center">
+    <img src="https://i.postimg.cc/8CqLMNQ9/Untitled-20-July-2025-14-32.jpg" alt="Bos Gaurus Logo" class="h-8 w-auto mr-2">
+  </div>
+
+  <!-- Desktop Navigation -->
+  <nav class="hidden md:flex space-x-6 text-sm font-bold uppercase tracking-wide">
+    <a href="#about" class="hover:text-gray-400 transition">About Us</a>
+    <a href="#join" class="hover:text-gray-400 transition">Contact Us</a>
+  </nav>
+
+  <!-- Hamburger Menu Button (Mobile only) -->
+  <button id="menu-btn" class="md:hidden focus:outline-none">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+         viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+</header>
+
+<!-- Mobile Slide-Out Menu -->
+<div id="mobile-menu" class="fixed top-0 right-0 h-full w-64 bg-black text-white transform translate-x-full transition-transform duration-300 z-50">
+  <div class="flex justify-end p-4">
+    <button id="close-menu" class="text-white text-xl">&times;</button>
+  </div>
+  <nav class="flex flex-col items-start px-6 space-y-4 text-sm font-bold uppercase tracking-wide">
+    <a href="#about" class="hover:text-gray-400 transition" onclick="toggleMenu()">About Us</a>
+    <a href="#join" class="hover:text-gray-400 transition" onclick="toggleMenu()">Contact Us</a>
+  </nav>
+</div>
+
+<!-- Overlay (optional for darker background when menu is open) -->
+<div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" onclick="toggleMenu()"></div>
 
   <!-- Sticky Hero Container -->
   <div class="sticky top-0 z-0 h-screen flex flex-col justify-center px-6 py-12 md:px-12 bg-black">
@@ -72,7 +108,7 @@
 
     <!-- About Section -->
 
-<section class="bg-black text-white px-6 py-16 md:py-24 text-center">
+<section id="about" class="bg-black text-white px-6 py-16 md:py-24 text-center">
 
   <h2 class="text-3xl md:text-4xl font-bold uppercase mb-6">About Bos Gaurus</h2>
 
@@ -131,7 +167,7 @@
   </form>
 
   <!-- Success Message -->
-  <p id="success-msg" class="mt-4 text-green-600 font-bold hidden">Submitted successfully!</p>
+  <p id="success-msg" class="mt-4 text-green-600 font-bold hidden">Welcome to BosVerse</p>
 </section>
 
 <script>
@@ -162,6 +198,21 @@
       .catch((err) => console.error("Error:", err));
   });
 </script>
+<script>
+  const menuBtn = document.getElementById("menu-btn");
+  const closeBtn = document.getElementById("close-menu");
+  const mobileMenu = document.getElementById("mobile-menu");
+  const overlay = document.getElementById("overlay");
+
+  function toggleMenu() {
+    mobileMenu.classList.toggle("translate-x-full");
+    overlay.classList.toggle("hidden");
+  }
+
+  menuBtn.addEventListener("click", toggleMenu);
+  closeBtn.addEventListener("click", toggleMenu);
+</script>
+
 
 
     <!-- Footer -->
@@ -172,4 +223,5 @@
   </main>
 </body>
 </html>
+
 
