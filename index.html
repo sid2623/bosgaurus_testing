@@ -65,7 +65,7 @@
   </div>
   <nav class="flex flex-col items-start px-6 space-y-4 text-sm font-bold uppercase tracking-wide">
     <a href="#about" class="hover:text-gray-400 transition" onclick="toggleMenu()">About Us</a>
-    <a href="#join" class="hover:text-gray-400 transition" onclick="toggleMenu()">Contact Us</a>
+    <a href="contact.html" class="hover:text-gray-400 transition" onclick="toggleMenu()">Contact Us</a>
   </nav>
 </div>
 
@@ -120,12 +120,13 @@
 
 </section>
 
-   <!-- Community / Contact Section -->
+ <!-- Community / Contact Section -->
 <section id="join" class="bg-white text-black px-6 py-16 md:py-24 text-center">
   <h2 class="text-3xl font-bold uppercase mb-4">Bosverse is Coming</h2>
   <p class="text-sm md:text-lg mb-6 max-w-xl mx-auto">
     Not a club. A movement. No points. Just respect. Be the first in.
   </p>
+
   <form id="contact-form" class="flex flex-col gap-4 mt-6 max-w-xl mx-auto text-left">
     <input 
       type="text" 
@@ -160,7 +161,8 @@
 
     <button 
       type="submit" 
-      class="dopamine-bg text-black px-6 py-3 font-bold uppercase tracking-wider hover:opacity-80 w-full sm:w-auto"
+      id="submit-button"
+      class="dopamine-bg text-black px-6 py-3 font-bold uppercase tracking-wider hover:opacity-80 w-full sm:w-auto flex items-center justify-center"
     >
       Join Early
     </button>
@@ -169,6 +171,39 @@
   <!-- Success Message -->
   <p id="success-msg" class="mt-4 text-green-600 font-bold hidden">Welcome to BosVerse</p>
 </section>
+
+<!-- Spinner Script -->
+<script>
+  const form = document.getElementById("contact-form");
+  const button = document.getElementById("submit-button");
+  const successMsg = document.getElementById("success-msg");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    // Save original button content
+    const originalText = button.innerHTML;
+
+    // Show loading spinner
+    button.disabled = true;
+    button.innerHTML = `
+      <svg class="animate-spin h-5 w-5 mr-2 text-black inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 100 16v4l3.5-3.5L12 20v-4a8 8 0 01-8-8z"></path>
+      </svg>
+      Loading...
+    `;
+
+    // Simulate form submission (e.g., API call)
+    setTimeout(() => {
+      form.reset();
+      button.innerHTML = originalText;
+      button.disabled = false;
+      successMsg.classList.remove("hidden");
+    }, 2000); // 2-second delay for demo
+  });
+</script>
+
 
 <script>
   const form = document.getElementById("contact-form");
