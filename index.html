@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
+  <meta name="description" content="Bos Gaurus - Built for Impact. Gear for athletes, rebels, and relentless movers. Enter the BosVerse.">
+<meta property="og:title" content="Bos Gaurus">
+<meta property="og:description" content="Born for Impact. Built to Dominate.">
+<meta property="og:type" content="website">
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bos Gaurus</title>
@@ -172,7 +177,6 @@
   <p id="success-msg" class="mt-4 text-green-600 font-bold hidden">Welcome to BosVerse</p>
 </section>
 
-<!-- Spinner Script -->
 <script>
   const form = document.getElementById("contact-form");
   const button = document.getElementById("submit-button");
@@ -181,10 +185,9 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
-    // Save original button content
     const originalText = button.innerHTML;
 
-    // Show loading spinner
+    // Show spinner
     button.disabled = true;
     button.innerHTML = `
       <svg class="animate-spin h-5 w-5 mr-2 text-black inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -193,24 +196,6 @@
       </svg>
       Loading...
     `;
-
-    // Simulate form submission (e.g., API call)
-    setTimeout(() => {
-      form.reset();
-      button.innerHTML = originalText;
-      button.disabled = false;
-      successMsg.classList.remove("hidden");
-    }, 2000); // 2-second delay for demo
-  });
-</script>
-
-
-<script>
-  const form = document.getElementById("contact-form");
-  const successMsg = document.getElementById("success-msg");
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
 
     const formData = {
       name: form.name.value,
@@ -221,18 +206,30 @@
 
     fetch("https://script.google.com/macros/s/AKfycbz1RNmHXn00xghYwT0QBwDmPGD7Fk846jxEnRmLPUUc0kyRfKBH2l7crLB0NYO0HJEMPA/exec", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
+        button.disabled = false;
+        button.innerHTML = originalText;
+
         if (data.result === "success") {
           successMsg.classList.remove("hidden");
           form.reset();
+        } else {
+          alert("Something went wrong. Try again!");
         }
       })
-      .catch((err) => console.error("Error:", err));
+      .catch(err => {
+        button.disabled = false;
+        button.innerHTML = originalText;
+        console.error("Error:", err);
+        alert("Network error. Try again!");
+      });
   });
 </script>
+
 <script>
   const menuBtn = document.getElementById("menu-btn");
   const closeBtn = document.getElementById("close-menu");
