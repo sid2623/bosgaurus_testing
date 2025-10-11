@@ -453,37 +453,50 @@
     startBtn.disabled = true;
     startBtn.innerHTML = 'Connecting...';
     talkPill.textContent = 'Initializing Session...';
-    
+
+    // ==================================================================
+    // 1. N8N WEBHOOK FOR START CALL
+    // This is the primary webhook that initiates the entire session.
+    // Replace the placeholder URL with your actual n8n "Start Call"
+    // webhook URL (e.g., from ngrok).
+    // ==================================================================
+    const startCallUrl = 'https://nonevilly-psychogenetic-genie.ngrok-free.dev/webhook-test/start-call';
+
+    // NEW: Check to prevent running with the placeholder URL.
+    if (startCallUrl.includes('YOUR_N8N_START_CALL_WEBHOOK_URL_HERE')) {
+      talkPill.textContent = 'Error: Configure Webhook URL';
+      console.error("CRITICAL: You must replace 'YOUR_N8N_START_CALL_WEBHOOK_URL_HERE' in the script.");
+      setTimeout(hideCallUI, 4000); // Give user time to see the error
+      return; // Stop execution
+    }
+
     try {
-      // ==================================================================
-      // 1. N8N WEBHOOK FOR START CALL
-      // This is the primary webhook that initiates the entire session.
-      // Replace the placeholder URL with your actual n8n "Start Call"
-      // webhook URL (e.g., from ngrok).
-      // ==================================================================
-      const response = await fetch('https://nonevilly-psychogenetic-genie.ngrok-free.dev/webhook-test/start-call', {
+      const response = await fetch(startCallUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: 'user-123' })
       });
-      if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+      if (!response.ok) throw new Error(`Webhook handshake failed: ${response.status}`);
+      
       const data = await response.json();
+      talkPill.textContent = 'Session created. Connecting...';
 
-      if (data.sessionId) {
+      // NEW: The n8n workflow MUST return a sessionId and a wsUrl.
+      if (data.sessionId && data.wsUrl) {
         currentSessionId = data.sessionId;
-        // The webhook response should include the WebSocket URL
-        // Example: "wss://your-n8n-instance.com/webhook/audio-stream"
-        // For local testing with ngrok, swap ws:// for wss://
-        const wsUrl = data.wsUrl || `wss://${window.location.host.replace(/:.*/, '')}/webhook-ws/${currentSessionId}`;
-        initializeAudio(wsUrl);
+        // The wsUrl should be provided by your n8n workflow.
+        // Example: "wss://your-ngrok-id.ngrok-free.app/webhook-ws/some-session-id"
+        initializeAudio(data.wsUrl);
       } else {
-        throw new Error("Session ID not received from n8n.");
+        // NEW: Throw a specific error if the response from n8n is missing required data.
+        throw new Error("Invalid response from n8n: Missing sessionId or wsUrl.");
       }
 
     } catch (err) {
       console.error('Error starting call:', err);
-      talkPill.textContent = 'Connection Failed';
-      setTimeout(hideCallUI, 2000);
+      // NEW: Display the actual error to the user for easier debugging.
+      talkPill.textContent = `Error: ${err.message}`;
+      setTimeout(hideCallUI, 4000); // Give user time to see the error
     } finally {
         startBtn.disabled = false;
         startBtn.innerHTML = `<svg class="phone-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg> Start`;
@@ -598,6 +611,9 @@
 </script>
 
 </body>
+</html>
+
+
 </html>
 
 
