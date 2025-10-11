@@ -264,12 +264,18 @@
   </main>
 </body>
 </html>
+
+
+
+
+
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Call Widget (Mobile-first)</title>
+  <title>Interactive Call Widget</title>
   <style>
     :root{
       --accent-1:#0b6b8a; /* teal-blue */
@@ -360,7 +366,7 @@
       <div class="center-pin" aria-hidden="true"></div>
     </div>
 
-    <div class="talk-pill">Talk to interrupt</div>
+    <div class="talk-pill" id="talkPill">Connecting...</div>
 
     <div class="controls">
       <button class="icon-btn end" id="endBtn" aria-label="End call">
@@ -377,32 +383,39 @@
 </div>
 
 <script>
-  // --- DOM Elements ---
+  // --- UI Elements and State ---
   const startBtn = document.getElementById('startBtn');
   const callOverlay = document.getElementById('callOverlay');
   const endBtn = document.getElementById('endBtn');
   const muteBtn = document.getElementById('muteBtn');
   const muteIcon = document.getElementById('muteIcon');
   const ring = document.getElementById('ring');
+  const talkPill = document.getElementById('talkPill');
 
-  // --- State Variables ---
   let callActive = false;
   let muted = false;
-  let currentSessionId = null; 
+  let currentSessionId = null;
 
+  // --- Real-time Audio Handling Globals ---
+  let socket;
+  let mediaRecorder;
+  let audioContext;
+  let audioQueue = [];
+  let isPlaying = false;
+  
   // --- UI Functions ---
   function showCallUI() {
     callOverlay.classList.add('show');
     callOverlay.setAttribute('aria-hidden', 'false');
     callActive = true;
-    onCallStart(); // Trigger the backend call
+    onCallStart(); 
   }
 
   function hideCallUI() {
     callOverlay.classList.remove('show');
     callOverlay.setAttribute('aria-hidden', 'true');
     callActive = false;
-    onCallEnd(); // Trigger the backend call
+    onCallEnd();
   }
 
   // --- Event Listeners ---
@@ -412,98 +425,176 @@
   muteBtn.addEventListener('click', () => {
     muted = !muted;
     muteBtn.setAttribute('aria-pressed', String(muted));
-    if (muted) {
-      // Swapping to a "muted" icon/style can go here
-      muteIcon.innerHTML = '<path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06 0-.11 0-.17V7c0-2.21-1.79-4-4-4s-4 1.79-4 4v.17l8.02 8.02zM4.27 3L3 4.27l6.01 6.01V11c0 2.21 1.79 4 4 4 .71 0 1.36-.18 1.94-.5l1.76 1.76c-.91.86-2.07 1.45-3.35 1.69V20h-1.7v-1.93c-3.13-.53-5.3-3.33-5.3-6.57H5c0 3.86 3.14 7 7 7v3h1.7v-3.02c1.45-.25 2.79-.88 3.91-1.78L19.73 21 21 19.73l-9-9L4.27 3z" fill="#072033"/>';
-      ring.querySelectorAll('.spoke').forEach(s => s.style.opacity = 0.25);
-    } else {
-       // Swapping back to the default "unmuted" icon
-      muteIcon.innerHTML = '<path d="M5 10v4h4l5 4V6L9 10H5z" fill="#072033"/>';
-      ring.querySelectorAll('.spoke').forEach(s => s.style.opacity = 0.85);
+    if (mediaRecorder && mediaRecorder.stream) {
+        mediaRecorder.stream.getAudioTracks().forEach(track => track.enabled = !muted);
     }
+    // Visual feedback for mute can be added here
+
+    // ==================================================================
+    // 3. N8N WEBHOOK FOR MUTE/UNMUTE (Optional)
+    // You can add a webhook call here to notify your n8n backend
+    // whenever the user mutes or unmutes their microphone. This is
+    // useful for logging or analytics.
+    // ==================================================================
+    /*
+    fetch('YOUR_N8N_MUTE_WEBHOOK_URL_HERE', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        sessionId: currentSessionId,
+        muted: muted 
+      })
+    }).catch(err => console.error('Mute webhook failed:', err));
+    */
   });
 
-  // --- n8n / Backend Integration ---
-
+  // --- n8n Webhook Integration ---
   async function onCallStart() {
     startBtn.disabled = true;
     startBtn.innerHTML = 'Connecting...';
-
+    talkPill.textContent = 'Initializing Session...';
+    
     try {
       // ==================================================================
-      // 1. IMPORTANT: REPLACE THIS URL with your actual "Start Call" n8n webhook URL.
+      // 1. N8N WEBHOOK FOR START CALL
+      // This is the primary webhook that initiates the entire session.
+      // Replace the placeholder URL with your actual n8n "Start Call"
+      // webhook URL (e.g., from ngrok).
       // ==================================================================
       const response = await fetch('https://nonevilly-psychogenetic-genie.ngrok-free.dev/webhook-test/start-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'user-123', // You can dynamically pass a real user ID here
-          meta: { source: 'website-widget', timestamp: new Date().toISOString() }
-        })
+        body: JSON.stringify({ userId: 'user-123' })
       });
-
-      if (!response.ok) {
-        throw new Error(`Webhook failed with status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
       const data = await response.json();
-      console.log('n8n start response:', data);
 
-      // Your n8n workflow should generate and return a unique ID for the call session.
       if (data.sessionId) {
         currentSessionId = data.sessionId;
+        // The webhook response should include the WebSocket URL
+        // Example: "wss://your-n8n-instance.com/webhook/audio-stream"
+        // For local testing with ngrok, swap ws:// for wss://
+        const wsUrl = data.wsUrl || `wss://${window.location.host.replace(/:.*/, '')}/webhook-ws/${currentSessionId}`;
+        initializeAudio(wsUrl);
       } else {
-        console.warn("n8n did not return a sessionId. Call ending cannot be tracked.");
+        throw new Error("Session ID not received from n8n.");
       }
 
     } catch (err) {
       console.error('Error starting call:', err);
-      alert('Could not start the call. Please check the console and try again.');
-      // If the call fails to start, immediately hide the UI again.
-      hideCallUI();
+      talkPill.textContent = 'Connection Failed';
+      setTimeout(hideCallUI, 2000);
     } finally {
-      // This 'finally' block ensures the button is ALWAYS reset, even if the call fails.
-      startBtn.disabled = false;
-      startBtn.innerHTML = `<svg class="phone-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg> Start`;
+        startBtn.disabled = false;
+        startBtn.innerHTML = `<svg class="phone-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg> Start`;
     }
   }
 
-  async function onCallEnd() {
-    if (!currentSessionId) {
-      console.log('No active session to end.');
-      return;
+  function onCallEnd() {
+    // Stop microphone and WebSocket
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
     }
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
+    if(audioContext) {
+        audioContext.close();
+    }
+    talkPill.textContent = 'Call Ended';
 
-    console.log(`Ending call for session: ${currentSessionId}`);
-    try {
-      // ==================================================================
-      // 2. IMPORTANT: REPLACE THIS URL with your "End Call" n8n webhook URL.
-      // ==================================================================
-      await fetch('YOUR_N8N_END_CALL_WEBHOOK_URL_HERE', {
+    // ==================================================================
+    // 2. N8N WEBHOOK FOR END CALL
+    // It's good practice to notify your backend when the call has ended.
+    // This allows you to clean up resources or finalize logs.
+    // Uncomment the code below and add your "End Call" webhook URL.
+    // ==================================================================
+    /*
+    if (currentSessionId) {
+      fetch('YOUR_N8N_END_CALL_WEBHOOK_URL_HERE', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: currentSessionId // Send the ID back to n8n
-        })
-      });
+        body: JSON.stringify({ sessionId: currentSessionId })
+      }).catch(err => console.error('End call webhook failed:', err));
+    }
+    */
+  }
+
+  // --- Real-Time Audio (WebSockets & Web Audio API) ---
+  async function initializeAudio(wsUrl) {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        socket = new WebSocket(wsUrl);
+        socket.binaryType = 'arraybuffer';
+
+        socket.onopen = () => {
+            console.log("WebSocket connected. Starting microphone.");
+            talkPill.textContent = 'You can talk now';
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                    socket.send(event.data);
+                }
+            };
+            
+            mediaRecorder.start(250); // Send data every 250ms
+        };
+
+        socket.onmessage = (event) => {
+            // Assume server sends back audio data (e.g., base64 encoded or raw buffer)
+            const audioData = event.data;
+            audioQueue.push(audioData);
+            if (!isPlaying) {
+                playNextAudioChunk();
+            }
+        };
+
+        socket.onclose = () => {
+            console.log("WebSocket disconnected.");
+            if (callActive) hideCallUI();
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            talkPill.textContent = 'Connection Error';
+        };
 
     } catch (err) {
-      // This error is less critical to the user, so we just log it to the console.
-      console.error('Error notifying backend of call end:', err);
-    } finally {
-      // Reset the session ID for the next call.
-      currentSessionId = null;
+        console.error("Error accessing microphone:", err);
+        talkPill.textContent = 'Microphone access denied.';
     }
   }
 
-  // --- Accessibility and Cleanup Listeners ---
-  document.addEventListener('keydown', (e) => {
-    if (callActive && e.key === 'Escape') hideCallUI();
-  });
-  callOverlay.addEventListener('click', (ev) => {
-    if (ev.target === callOverlay) hideCallUI();
-  });
+  async function playNextAudioChunk() {
+    if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+    }
+    isPlaying = true;
 
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const audioData = audioQueue.shift();
+    try {
+        // The server must send audio in a format the browser can decode, like WAV or MP3.
+        // The ArrayBuffer received from the WebSocket is decoded here.
+        const audioBuffer = await audioContext.decodeAudioData(audioData);
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.onended = playNextAudioChunk; // Play the next chunk when this one finishes
+        source.start();
+        talkPill.textContent = '...'; // AI is speaking
+    } catch (e) {
+        console.error("Error decoding audio data:", e);
+        isPlaying = false; // Try to recover by playing the next chunk
+        playNextAudioChunk();
+    }
+  }
 </script>
 
 </body>
