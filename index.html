@@ -1037,7 +1037,52 @@
                     throw new Error('Network response was not ok');
                 }
 
-                return await response.json();
+                const data = await response.json();
+                
+                // Handle different n8n response formats
+                if (typeof data === 'string') {
+                    return { message: data };
+                } else if (data.output) {
+                    return { message: data.output };
+                } else if (data.text) {
+                    return { message: data.text };
+                } else if (data.response) {
+                    return { message: data.response };
+                } else if (data.message) {
+                    return { message: data.message };
+                } else {
+                    // If it's a complex object, try to extract the text content
+                    const textContent = this.extractTextFromResponse(data);
+                    return { message: textContent };
+                }
+            }
+
+            extractTextFromResponse(data) {
+                // Try to find text content in various possible locations
+                if (typeof data === 'string') return data;
+                if (data.output) return data.output;
+                if (data.text) return data.text;
+                if (data.response) return data.response;
+                if (data.message) return data.message;
+                if (data.result) return data.result;
+                
+                // If it's an array, try the first item
+                if (Array.isArray(data) && data.length > 0) {
+                    return this.extractTextFromResponse(data[0]);
+                }
+                
+                // If it's an object, try to find any text-like property
+                if (typeof data === 'object' && data !== null) {
+                    const keys = Object.keys(data);
+                    for (const key of keys) {
+                        if (typeof data[key] === 'string' && data[key].length > 0) {
+                            return data[key];
+                        }
+                    }
+                }
+                
+                // Fallback: stringify the object
+                return JSON.stringify(data);
             }
 
             addMessage(sender, content) {
@@ -1158,6 +1203,7 @@
             new JuteChatWidget();
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98f6f785364717b2',t:'MTc2MDYxMTUyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98f708e6139a17b2',t:'MTc2MDYxMjI0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
+
 
