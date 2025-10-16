@@ -270,7 +270,6 @@
 
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -913,234 +912,252 @@
             </div>
         </div>
     </div>
-<script>
-  class JuteChatWidget {
-    constructor() {
-      this.isOpen = false;
-      this.messages = [];
-      // Use your public HTTPS n8n endpoint. In editor use /webhook-test/chat, in production use /webhook/chat
-      this.n8nWebhookUrl = 'https://localhost:5678/webhook-test/chat';
 
-      this.initializeElements();
-      this.bindEvents();
-      this.showQuickReplies();
-      this.autoResize();
-    }
+    <script>
+        class JuteChatWidget {
+            constructor() {
+                this.isOpen = false;
+                this.messages = [];
+                this.n8nWebhookUrl = 'http://localhost:5678/webhook-test/chat'; // Update this with your n8n webhook URL
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.showQuickReplies();
+                this.autoResize();
+            }
 
-    initializeElements() {
-      this.chatToggle = document.getElementById('chatToggle');
-      this.chatContainer = document.getElementById('chatContainer');
-      this.chatMessages = document.getElementById('chatMessages');
-      this.chatInput = document.getElementById('chatInput');
-      this.sendBtn = document.getElementById('sendBtn');
-      this.inputWrapper = document.getElementById('inputWrapper');
-      this.typingIndicator = document.getElementById('typingIndicator');
-      this.quickReplies = document.getElementById('quickReplies');
-      this.notificationBadge = document.getElementById('notificationBadge');
-      this.minimizeBtn = document.getElementById('minimizeBtn');
-      this.refreshBtn = document.getElementById('refreshBtn');
-    }
+            initializeElements() {
+                this.chatToggle = document.getElementById('chatToggle');
+                this.chatContainer = document.getElementById('chatContainer');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.chatInput = document.getElementById('chatInput');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.inputWrapper = document.getElementById('inputWrapper');
+                this.typingIndicator = document.getElementById('typingIndicator');
+                this.quickReplies = document.getElementById('quickReplies');
+                this.notificationBadge = document.getElementById('notificationBadge');
+                this.minimizeBtn = document.getElementById('minimizeBtn');
+                this.refreshBtn = document.getElementById('refreshBtn');
+            }
 
-    bindEvents() {
-      this.chatToggle.addEventListener('click', () => this.toggleChat());
-      this.sendBtn.addEventListener('click', () => this.sendMessage());
-      this.chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage();
+            bindEvents() {
+                this.chatToggle.addEventListener('click', () => this.toggleChat());
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                this.chatInput.addEventListener('input', () => this.autoResize());
+                this.chatInput.addEventListener('focus', () => this.inputWrapper.classList.add('focused'));
+                this.chatInput.addEventListener('blur', () => this.inputWrapper.classList.remove('focused'));
+                this.minimizeBtn.addEventListener('click', () => this.toggleChat());
+                this.refreshBtn.addEventListener('click', () => this.refreshChat());
+
+                // Quick replies
+                this.quickReplies.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('quick-reply')) {
+                        const message = e.target.dataset.message;
+                        this.chatInput.value = message;
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            toggleChat() {
+                this.isOpen = !this.isOpen;
+                this.chatToggle.classList.toggle('active', this.isOpen);
+                this.chatContainer.classList.toggle('active', this.isOpen);
+                
+                if (this.isOpen) {
+                    this.chatInput.focus();
+                    this.hideNotification();
+                }
+            }
+
+            async sendMessage() {
+                const message = this.chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                this.addMessage('user', message);
+
+                // Clear input
+                this.chatInput.value = '';
+                this.autoResize();
+                this.hideQuickReplies();
+
+                // Show typing indicator
+                this.showTyping();
+
+                try {
+                    // Send to n8n webhook
+                    const response = await this.sendToN8n(message);
+                    
+                    // Simulate processing delay
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    this.hideTyping();
+                    
+                    // Add bot response
+                    const botMessage = response.message || "I received your message! This is a demo response. Connect your n8n webhook to get real AI responses.";
+                    this.addMessage('bot', botMessage);
+                    
+                    // Show satisfaction rating occasionally
+                    if (Math.random() > 0.7) {
+                        this.showSatisfactionRating();
+                    }
+                    
+                } catch (error) {
+                    this.hideTyping();
+                    this.addMessage('bot', "I'm having trouble connecting right now. Please make sure your n8n webhook URL is configured correctly.");
+                }
+
+                this.showQuickReplies();
+            }
+
+            async sendToN8n(message) {
+                const payload = {
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    sessionId: this.getSessionId(),
+                    agent: 'jute'
+                };
+
+                const response = await fetch(this.n8nWebhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                return await response.json();
+            }
+
+            addMessage(sender, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const avatarContent = sender === 'bot' 
+                    ? '<div style="width: 16px; height: 16px; background: white; border-radius: 50%; opacity: 0.8;"></div>'
+                    : '<div style="font-weight: 600;">U</div>';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${avatarContent}</div>
+                    <div class="message-content">
+                        <div class="message-bubble">${content}</div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+                
+                // Show notification if chat is closed
+                if (!this.isOpen && sender === 'bot') {
+                    this.showNotification();
+                }
+            }
+
+            showTyping() {
+                this.typingIndicator.classList.add('show');
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.typingIndicator.classList.remove('show');
+            }
+
+            showQuickReplies() {
+                setTimeout(() => {
+                    this.quickReplies.classList.add('show');
+                }, 500);
+            }
+
+            hideQuickReplies() {
+                this.quickReplies.classList.remove('show');
+            }
+
+            showSatisfactionRating() {
+                const ratingDiv = document.createElement('div');
+                ratingDiv.className = 'satisfaction-rating';
+                ratingDiv.innerHTML = `
+                    <div class="rating-title">How was my response?</div>
+                    <div class="rating-buttons">
+                        <button class="rating-btn" data-rating="1">😞</button>
+                        <button class="rating-btn" data-rating="2">😐</button>
+                        <button class="rating-btn" data-rating="3">😊</button>
+                        <button class="rating-btn" data-rating="4">😍</button>
+                    </div>
+                `;
+
+                ratingDiv.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('rating-btn')) {
+                        const rating = e.target.dataset.rating;
+                        e.target.classList.add('selected');
+                        setTimeout(() => {
+                            ratingDiv.innerHTML = '<div class="rating-title">Thank you for your feedback!</div>';
+                        }, 500);
+                    }
+                });
+
+                this.chatMessages.appendChild(ratingDiv);
+                this.scrollToBottom();
+            }
+
+            autoResize() {
+                this.chatInput.style.height = 'auto';
+                this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 100) + 'px';
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }, 100);
+            }
+
+            showNotification() {
+                this.notificationBadge.classList.add('show');
+            }
+
+            hideNotification() {
+                this.notificationBadge.classList.remove('show');
+            }
+
+            refreshChat() {
+                this.chatMessages.innerHTML = `
+                    <div class="welcome-message">
+                        <h3>Hello! I'm Jute</h3>
+                        <p>Your AI assistant refreshed. How can I help you today?</p>
+                    </div>
+                `;
+                this.messages = [];
+                this.showQuickReplies();
+            }
+
+            getSessionId() {
+                let sessionId = localStorage.getItem('chatSessionId');
+                if (!sessionId) {
+                    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('chatSessionId', sessionId);
+                }
+                return sessionId;
+            }
         }
-      });
-      this.chatInput.addEventListener('input', () => this.autoResize());
-      this.chatInput.addEventListener('focus', () => this.inputWrapper.classList.add('focused'));
-      this.chatInput.addEventListener('blur', () => this.inputWrapper.classList.remove('focused'));
-      this.minimizeBtn.addEventListener('click', () => this.toggleChat());
-      this.refreshBtn.addEventListener('click', () => this.refreshChat());
 
-      this.quickReplies.addEventListener('click', (e) => {
-        if (e.target.classList.contains('quick-reply')) {
-          const message = e.target.dataset.message;
-          this.chatInput.value = message;
-          this.sendMessage();
-        }
-      });
-    }
-
-    toggleChat() {
-      this.isOpen = !this.isOpen;
-      this.chatToggle.classList.toggle('active', this.isOpen);
-      this.chatContainer.classList.toggle('active', this.isOpen);
-      if (this.isOpen) {
-        this.chatInput.focus();
-        this.hideNotification();
-      }
-    }
-
-    async sendMessage() {
-      const message = this.chatInput.value.trim();
-      if (!message) return;
-
-      this.addMessage('user', message);
-      this.chatInput.value = '';
-      this.autoResize();
-      this.hideQuickReplies();
-      this.showTyping();
-
-      try {
-        const response = await this.sendToN8n(message);
-        this.hideTyping();
-
-        const botMessage =
-          (response && (response.message || response.text || response.output || response.result || response.response || response.data)) ||
-          "No response from server.";
-        this.addMessage('bot', typeof botMessage === 'string' ? botMessage : JSON.stringify(botMessage));
-        if (Math.random() > 0.7) this.showSatisfactionRating();
-      } catch (error) {
-        this.hideTyping();
-        this.addMessage('bot', "I'm having trouble connecting right now. Please make sure your n8n webhook URL is configured correctly.");
-        console.error(error);
-      }
-
-      this.showQuickReplies();
-    }
-
-    async sendToN8n(message) {
-      const payload = {
-        message,
-        timestamp: new Date().toISOString(),
-        sessionId: this.getSessionId(),
-        agent: 'jute'
-      };
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const res = await fetch(this.n8nWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      }).catch((e) => {
-        clearTimeout(timeoutId);
-        throw e;
-      });
-
-      clearTimeout(timeoutId);
-
-      const raw = await res.text();
-      let data;
-      try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
-
-      console.log('n8n response:', data);
-      return data;
-    }
-
-    addMessage(sender, content) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${sender}`;
-
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      const avatarContent = sender === 'bot'
-        ? '<div style="width: 16px; height: 16px; background: white; border-radius: 50%; opacity: 0.8;"></div>'
-        : '<div style="font-weight: 600;">U</div>';
-
-      messageDiv.innerHTML = `
-        <div class="message-avatar">${avatarContent}</div>
-        <div class="message-content">
-          <div class="message-bubble">${content}</div>
-          <div class="message-time">${time}</div>
-        </div>
-      `;
-
-      this.chatMessages.appendChild(messageDiv);
-      this.scrollToBottom();
-
-      if (!this.isOpen && sender === 'bot') this.showNotification();
-    }
-
-    showTyping() {
-      this.typingIndicator.classList.add('show');
-      this.scrollToBottom();
-    }
-
-    hideTyping() {
-      this.typingIndicator.classList.remove('show');
-    }
-
-    showQuickReplies() {
-      setTimeout(() => this.quickReplies.classList.add('show'), 500);
-    }
-
-    hideQuickReplies() {
-      this.quickReplies.classList.remove('show');
-    }
-
-    showSatisfactionRating() {
-      const ratingDiv = document.createElement('div');
-      ratingDiv.className = 'satisfaction-rating';
-      ratingDiv.innerHTML = `
-        <div class="rating-title">How was my response?</div>
-        <div class="rating-buttons">
-          <button class="rating-btn" data-rating="1">😞</button>
-          <button class="rating-btn" data-rating="2">😐</button>
-          <button class="rating-btn" data-rating="3">😊</button>
-          <button class="rating-btn" data-rating="4">😍</button>
-        </div>
-      `;
-      ratingDiv.addEventListener('click', (e) => {
-        if (e.target.classList.contains('rating-btn')) {
-          e.target.classList.add('selected');
-          setTimeout(() => { ratingDiv.innerHTML = '<div class="rating-title">Thank you for your feedback!</div>'; }, 500);
-        }
-      });
-      this.chatMessages.appendChild(ratingDiv);
-      this.scrollToBottom();
-    }
-
-    autoResize() {
-      this.chatInput.style.height = 'auto';
-      this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 100) + 'px';
-    }
-
-    scrollToBottom() {
-      setTimeout(() => {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-      }, 100);
-    }
-
-    showNotification() {
-      this.notificationBadge.classList.add('show');
-    }
-
-    hideNotification() {
-      this.notificationBadge.classList.remove('show');
-    }
-
-    refreshChat() {
-      this.chatMessages.innerHTML = `
-        <div class="welcome-message">
-          <h3>Hello! I'm Jute</h3>
-          <p>Your AI assistant refreshed. How can I help you today?</p>
-        </div>
-      `;
-      this.messages = [];
-      this.showQuickReplies();
-    }
-
-    getSessionId() {
-      let sessionId = localStorage.getItem('chatSessionId');
-      if (!sessionId) {
-        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('chatSessionId', sessionId);
-      }
-      return sessionId;
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    new JuteChatWidget();
-  });
-</script>
+        // Initialize the chat widget when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new JuteChatWidget();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98f6f785364717b2',t:'MTc2MDYxMTUyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
+
