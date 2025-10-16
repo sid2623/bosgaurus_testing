@@ -919,7 +919,7 @@
             constructor() {
                 this.isOpen = false;
                 this.messages = [];
-                this.n8nWebhookUrl = 'http://localhost:5678/webhook-test/chat'; // Update this with your n8n webhook URL
+                this.n8nWebhookUrl = 'http://localhost:5678/webhook/chat'; // Update this with your n8n webhook URL
                 
                 this.initializeElements();
                 this.bindEvents();
@@ -997,7 +997,7 @@
                     const response = await this.sendToN8n(message);
                     
                     // Simulate processing delay
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    await new Promise(resolve => setTimeout(resolve, 30000));
                     
                     this.hideTyping();
                     
