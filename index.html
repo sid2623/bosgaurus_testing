@@ -213,29 +213,30 @@
       message: form.message.value,
     };
 
-    fetch("https://script.google.com/macros/s/AKfycbzMltZRpgEgj7vxAmpeu-_5Z6kc-ql6HdVv2aRxMg-dlKZaLbcqQ-HMGi3UXI7FoE9BVA/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbxwZWy1CThonTBXKPRQnJ_FuDvJ0kXvrosnOjSI8d8ZmWUX9J0Feqb0j4udkI0SEYcW4w/exec", {
   method: "POST",
-  // remove application/json header to avoid preflight
-  headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+  headers: { "Content-Type": "text/plain;charset=utf-8" }, // stays simple → no preflight
   body: JSON.stringify(formData),
 })
-  .then(res => res.json())
-  .then(data => {
-    button.disabled = false;
-    button.innerHTML = originalText;
-    if (data.result === "success") {
-      successMsg.classList.remove("hidden");
-      form.reset();
-    } else {
-      alert("Something went wrong. Try again!");
-    }
-  })
-  .catch(err => {
-    button.disabled = false;
-    button.innerHTML = originalText;
-    console.error("Error:", err);
-    alert("Network error. Try again!");
-  });
+.then(res => res.json())
+.then(data => {
+  button.disabled = false;
+  button.innerHTML = originalText;
+
+  if (data.result === "success") {
+    successMsg.classList.remove("hidden");
+    form.reset();
+  } else {
+    console.error("Server error:", data.message);
+    alert("Something went wrong: " + (data.message || "Try again!"));
+  }
+})
+.catch(err => {
+  button.disabled = false;
+  button.innerHTML = originalText;
+  console.error("Fetch error:", err);
+  alert("Network error. Try again!");
+});
 
 </script>
 
