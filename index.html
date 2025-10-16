@@ -275,346 +275,333 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Interactive Call Widget</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice Assistant Widget</title>
   <style>
     :root{
-      --accent-1:#0b6b8a; /* teal-blue */
+      --bg:#f2f6fb;
+      --card:#ffffff;
+      --ink:#0a1b2a;
+      --muted:#5a6b7d;
+      --accent:#0b6b8a; /* teal-blue */
       --accent-2:#3aa0ff; /* blue voice */
-      --bg:#ffffff;
-      --shadow: 0 8px 30px rgba(6,30,60,0.08);
-      --glass: rgba(230,233,238,0.95);
+      --danger:#ef4444;
+      --glass: rgba(230,233,238,0.9);
+      --shadow: 0 10px 30px rgba(6,30,60,.08);
+      --radius:16px;
       font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
-    body {
-      background-color: #f0f4f8;
-      margin: 0;
-      min-height: 100vh;
-    }
-    /* MOBILE-FIRST WIDGET */
-    .call-widget{
-      position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9999;
-      width:calc(100% - 36px);max-width:720px;background:linear-gradient(180deg,#fff,#fbfdff);
-      border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px
-    }
-    .call-widget .avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;border:1px solid rgba(0,0,0,0.04);flex:0 0 44px}
-    .call-widget .avatar img{width:100%;height:100%;object-fit:cover}
-    .call-widget .text{flex:1;min-width:0}
-    .call-widget .title{font-weight:700;font-size:15px;color:#072033}
-    .call-widget .sub{font-size:13px;color:#546377;margin-top:2px}
-    .call-widget .cta{background:#000;color:#fff;border-radius:999px;padding:10px 14px;font-weight:700;border:none;display:inline-flex;align-items:center;gap:10px; cursor: pointer; transition: background-color 0.2s ease;}
-    .call-widget .cta:disabled { background-color: #555; cursor: not-allowed; }
-    .call-widget .phone-icon{width:18px;height:18px;display:inline-block}
-    /* FULLSCREEN / PANEL (mobile-optimised) */
-    .call-overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,251,253,0.98));display:none;align-items:center;justify-content:center;padding:18px;z-index:10000}
-    .call-overlay.show{display:flex}
-    .call-stage{width:100%;max-width:460px;border-radius:18px;padding:18px;background:linear-gradient(180deg,#fff,#f6fbfd);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center}
-    /* Voice-mode ring (animated like ChatGPT voice) */
-    .ring{position:relative;width:84vw;max-width:340px;height:84vw;max-height:340px;border-radius:50%;overflow:hidden;border:12px solid rgba(230,233,238,0.95);display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%, rgba(11,107,138,0.18), transparent 20%), radial-gradient(circle at 70% 70%, rgba(58,160,255,0.12), transparent 22%)}
-    .ring .pulse{position:absolute;border-radius:50%;transform:translate(-50%,-50%);left:50%;top:50%;opacity:0.18;filter:blur(18px);}
-    .ring .pulse.p1{width:160%;height:160%;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));animation:pulseA 2.2s ease-in-out infinite}
-    .ring .pulse.p2{width:120%;height:120%;background:linear-gradient(90deg,var(--accent-2),#aee6ff);animation:pulseB 2.8s ease-in-out infinite}
-    @keyframes pulseA{0%{transform:translate(-50%,-50%) scale(0.9);opacity:0.12}50%{transform:translate(-50%,-50%) scale(1);opacity:0.24}100%{transform:translate(-50%,-50%) scale(0.9);opacity:0.12}}
-    @keyframes pulseB{0%{transform:translate(-50%,-50%) scale(1);opacity:0.09}50%{transform:translate(-50%,-50%) scale(1.06);opacity:0.22}100%{transform:translate(-50%,-50%) scale(1);opacity:0.09}}
-    .spokes{position:absolute;inset:0;display:block}
-    .spoke{position:absolute;left:50%;top:50%;transform-origin:0 0;width:6px;height:18%;background:linear-gradient(180deg,var(--accent-2),var(--accent-1));border-radius:4px;opacity:0.85}
-    .spoke:nth-child(1){transform:rotate(0deg) translateX(-50%);} .spoke:nth-child(2){transform:rotate(30deg) translateX(-50%);} .spoke:nth-child(3){transform:rotate(60deg) translateX(-50%);} .spoke:nth-child(4){transform:rotate(90deg) translateX(-50%);} .spoke:nth-child(5){transform:rotate(120deg) translateX(-50%);} .spoke:nth-child(6){transform:rotate(150deg) translateX(-50%);} .spoke:nth-child(7){transform:rotate(180deg) translateX(-50%);} .spoke:nth-child(8){transform:rotate(210deg) translateX(-50%);} .spoke:nth-child(9){transform:rotate(240deg) translateX(-50%);} .spoke:nth-child(10){transform:rotate(270deg) translateX(-50%);} .spoke:nth-child(11){transform:rotate(300deg) translateX(-50%);} .spoke:nth-child(12){transform:rotate(330deg) translateX(-50%);}
-    .spoke{animation:spokeAnim 1.4s ease-in-out infinite}
-    .spoke:nth-child(even){animation-duration:1.1s}
+    html,body{background:var(--bg);margin:0;min-height:100%}
+
+    /* ——— Floating Widget Button ——— */
+    .va-widget{position:fixed;inset:auto 16px 16px auto;z-index:1000;display:flex;align-items:center;gap:10px;background:var(--card);border-radius:999px;padding:10px 12px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.04)}
+    .va-widget .avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;border:1px solid rgba(0,0,0,.06)}
+    .va-widget .title{font-weight:700;font-size:14px;color:var(--ink);line-height:1}
+    .va-widget .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .va-widget .cta{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:999px;padding:10px 14px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;cursor:pointer}
+    .va-widget .cta[disabled]{opacity:.6;cursor:not-allowed}
+
+    /* ——— Fullscreen Call Overlay ——— */
+    .va-overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,251,253,.98));display:none;align-items:center;justify-content:center;padding:18px;z-index:2000}
+    .va-overlay.show{display:flex}
+    .va-stage{width:100%;max-width:520px;background:var(--card);border-radius:20px;padding:20px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;border:1px solid rgba(0,0,0,.05)}
+
+    /* ——— Voice Ring (animated) ——— */
+    .ring{position:relative;width:min(84vw,360px);height:min(84vw,360px);border-radius:50%;display:grid;place-items:center;border:12px solid var(--glass);background:radial-gradient(100% 100% at 30% 30%, rgba(11,107,138,.15) 0%, transparent 40%),radial-gradient(100% 100% at 70% 70%, rgba(58,160,255,.12) 0%, transparent 42%)}
+    .ring .pulse{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(16px);opacity:.18}
+    .ring .p1{width:160%;height:160%;background:linear-gradient(90deg,var(--accent),var(--accent-2));animation:p1 2.3s ease-in-out infinite}
+    .ring .p2{width:120%;height:120%;background:linear-gradient(90deg,var(--accent-2),#aee6ff);animation:p2 2.9s ease-in-out infinite}
+    @keyframes p1{0%{transform:translate(-50%,-50%) scale(.92);opacity:.12}50%{transform:translate(-50%,-50%) scale(1);opacity:.24}100%{transform:translate(-50%,-50%) scale(.92);opacity:.12}}
+    @keyframes p2{0%{transform:translate(-50%,-50%) scale(1);opacity:.08}50%{transform:translate(-50%,-50%) scale(1.06);opacity:.2}100%{transform:translate(-50%,-50%) scale(1);opacity:.08}}
+    .spokes{position:absolute;inset:0}
+    .spoke{position:absolute;left:50%;top:50%;transform-origin:0 0;width:6px;height:18%;background:linear-gradient(180deg,var(--accent-2),var(--accent));border-radius:4px;opacity:.85;animation:s 1.4s ease-in-out infinite}
+    .spoke:nth-child(2n){animation-duration:1.1s}
     .spoke:nth-child(3n){animation-duration:1.6s}
-    @keyframes spokeAnim{0%{transform:scaleY(0.5) translateX(-50%)}50%{transform:scaleY(1.0) translateX(-50%)}100%{transform:scaleY(0.5) translateX(-50%)}}
-    .blob{position:absolute;width:46%;height:46%;border-radius:50%;left:28%;top:28%;filter:blur(18px);background:radial-gradient(circle at 30% 30%, rgba(58,160,255,0.95), rgba(11,107,138,0.75));animation:blobMove 3.2s ease-in-out infinite}
-    @keyframes blobMove{0%{transform:translate(0,0) scale(1)}33%{transform:translate(10px,-8px) scale(1.05)}66%{transform:translate(-8px,12px) scale(0.95)}100%{transform:translate(0,0) scale(1)}}
-    .center-pin{width:8px;height:8px;border-radius:50%;background:var(--accent-2);position:relative;z-index:4;box-shadow:0 6px 18px rgba(10,40,80,0.12)}
-    .talk-pill{margin-top:14px;padding:10px 16px;border-radius:0px;background:#fff;border:1px solid rgba(10,20,30,0.04);font-weight:700}
-    .controls{display:flex;gap:14px;margin-top:18px;align-items:center}
-    .icon-btn{width:52px;height:52px;border-radius:12px;border:none;background:#f7fbff;display:inline-grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(6,30,60,0.06)}
-    .icon-btn.end{background:linear-gradient(180deg,#ff5a50,#ff2d2a);color:#fff}
+    @keyframes s{0%{transform:scaleY(.5) translateX(-50%)}50%{transform:scaleY(1) translateX(-50%)}100%{transform:scaleY(.5) translateX(-50%)}}
+    .center-pin{width:10px;height:10px;border-radius:50%;background:var(--accent-2);box-shadow:0 6px 18px rgba(10,40,80,.12)}
+
+    .meta{margin-top:14px;display:flex;gap:10px;align-items:center}
+    .pill{padding:8px 12px;border-radius:999px;background:#fff;border:1px solid rgba(0,0,0,.06);font-weight:600;color:var(--ink)}
+    .subtle{color:var(--muted);font-weight:600}
+
+    .controls{display:flex;gap:14px;margin-top:18px}
+    .btn{width:56px;height:56px;border-radius:14px;border:1px solid rgba(0,0,0,.06);background:#f6fbff;display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 18px rgba(6,30,60,.06)}
+    .btn.end{background:linear-gradient(180deg,#ff6b6b,#ef4444);border:none}
+    .btn svg{width:26px;height:26px}
+
+    @media(min-width:760px){.va-widget{inset:auto 20px 20px auto}.va-stage{padding:28px}}
     @media (prefers-reduced-motion: reduce){*{animation:none!important}}
-    @media(min-width:720px){
-      .call-widget{width:320px;right:20px;left:auto;transform:none;border-radius:18px}
-      .call-stage{max-width:520px}
-    }
   </style>
 </head>
 <body>
 
-<!-- MOBILE-FIRST WIDGET -->
-<div class="call-widget" id="callWidget">
-  <div class="avatar"><img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%2372d0d9'/><stop offset='1' stop-color='%230b6b8a'/></linearGradient></defs><rect width='100%' height='100%' fill='url(%23g)' rx='60'/></svg>" alt="avatar"></div>
-  <div class="text">
-    <div class="title">Need help?</div>
-    <div class="sub">Tap to start a quick voice assistant</div>
+  <!-- Floating Widget -->
+  <div class="va-widget" id="vaWidget">
+    <img class="avatar" alt="assistant" src="data:image/svg+xml;utf8,<?xml version='1.0' encoding='UTF-8'?><svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%2372d0d9'/><stop offset='1' stop-color='%230b6b8a'/></linearGradient></defs><rect width='100%' height='100%' rx='40' fill='url(%23g)'/></svg>">
+    <div style="min-width:0">
+      <div class="title">Need help?</div>
+      <div class="sub">Tap to speak with assistant</div>
+    </div>
+    <button class="cta" id="startBtn" aria-label="Start voice call">
+      <!-- Headset Icon (Heroicons solid headset-microphone) -->
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="20" height="20"><path d="M12 2a8 8 0 0 0-8 8v3a3 3 0 0 0 3 3h1v-6H7a1 1 0 0 1-1-1 6 6 0 1 1 12 0 1 1 0 0 1-1 1h-1v6h1a3 3 0 0 0 3-3v-3a8 8 0 0 0-8-8z"/><path d="M9 14.5A2.5 2.5 0 0 0 11.5 17H13v1.25A2.75 2.75 0 0 1 10.25 21h-.5a.75.75 0 0 1 0-1.5h.5c.69 0 1.25-.56 1.25-1.25V17h-1.5A2.5 2.5 0 0 1 8 14.5V12h1v2.5z"/></svg>
+      Talk
+    </button>
   </div>
-  <button class="cta" id="startBtn" aria-label="Start call">
-    <svg class="phone-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg>
-    Start
-  </button>
-</div>
 
-<!-- CALL OVERLAY -->
-<div class="call-overlay" id="callOverlay" aria-hidden="true">
-  <div class="call-stage" role="dialog" aria-modal="true">
-    <div class="ring" id="ring">
-      <div class="pulse p1"></div>
-      <div class="pulse p2"></div>
-      <div class="spokes" aria-hidden="true">
-        <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
-        <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
-        <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
+  <!-- Call Overlay -->
+  <div class="va-overlay" id="vaOverlay" aria-hidden="true">
+    <div class="va-stage" role="dialog" aria-modal="true">
+      <div class="ring" id="ring">
+        <div class="pulse p1"></div>
+        <div class="pulse p2"></div>
+        <div class="spokes" aria-hidden="true">
+          <div class="spoke" style="transform:rotate(0deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(30deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(60deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(90deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(120deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(150deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(180deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(210deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(240deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(270deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(300deg) translateX(-50%)"></div>
+          <div class="spoke" style="transform:rotate(330deg) translateX(-50%)"></div>
+        </div>
+        <div class="center-pin" aria-hidden="true"></div>
       </div>
-      <div class="blob" aria-hidden="true"></div>
-      <div class="center-pin" aria-hidden="true"></div>
-    </div>
 
-    <div class="talk-pill" id="talkPill">Connecting...</div>
+      <div class="meta">
+        <div class="pill" id="statusPill">Connecting…</div>
+        <div class="subtle" id="timer">00:00</div>
+      </div>
 
-    <div class="controls">
-      <button class="icon-btn end" id="endBtn" aria-label="End call">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg>
-      </button>
-
-      <button class="icon-btn" id="muteBtn" aria-pressed="false" aria-label="Mute">
-        <svg id="muteIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 10v4h4l5 4V6L9 10H5z" fill="#072033"/></svg>
-      </button>
-
-      <div style="width:8px"></div>
+      <div class="controls">
+        <!-- End Call (Heroicons phone-x-mark solid) -->
+        <button class="btn end" id="endBtn" aria-label="End call" title="End call">
+          <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2.25 9.75a1.5 1.5 0 0 1 1-1.414c5.58-2.168 11.92-2.168 17.5 0a1.5 1.5 0 0 1 1 1.414v2.087a1.5 1.5 0 0 1-1.824 1.469l-3.38-.73a1.5 1.5 0 0 1-1.131-.92l-.59-1.476a19.6 19.6 0 0 0-4.95 0l-.59 1.476a1.5 1.5 0 0 1-1.13.92l-3.382.73A1.5 1.5 0 0 1 2.25 11.837V9.75z"/></svg>
+        </button>
+        <!-- Mute (toggles) Heroicons microphone/microphone-slash -->
+        <button class="btn" id="muteBtn" aria-pressed="false" aria-label="Mute" title="Mute / Unmute">
+          <svg id="micOn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z"/><path d="M5 11a1 1 0 1 1 2 0 5 5 0 1 0 10 0 1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H10a1 1 0 1 1 0-2h3v-3.07A7 7 0 0 1 5 11z"/></svg>
+          <svg id="micOff" style="display:none" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l18.5 18.5a.75.75 0 1 0 1.06-1.06l-3.37-3.37A7.03 7.03 0 0 0 19 11a1 1 0 1 0-2 0 5 5 0 0 1-8.53 3.54l1.12-1.12A3 3 0 0 0 15 11V9.56L3.28 2.22z"/><path d="M12 2a3 3 0 0 0-3 3v1.19l6.01 3.6V5a3 3 0 0 0-3-3z"/><path d="M10 21a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1.99v-2.07a7 7 0 0 0 3.53-1.23l-1.17-1.17a5 5 0 0 1-6.73-.23l-1.13 1.13c.9.71 1.95 1.22 3.11 1.47V21H10z"/></svg>
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
 <script>
-  // --- UI Elements and State ---
+(() => {
+  // ——— Config (replace with your endpoints) ———
+  const N8N_START_URL = 'https://YOUR-N8N-DOMAIN/webhook/start-call'; // must return { sessionId, wsUrl }
+  const N8N_END_URL   = 'https://YOUR-N8N-DOMAIN/webhook/end-call';   // optional
+  const USER_ID = 'user-123';
+
+  // ——— Elements ———
+  const widget = document.getElementById('vaWidget');
   const startBtn = document.getElementById('startBtn');
-  const callOverlay = document.getElementById('callOverlay');
+  const overlay = document.getElementById('vaOverlay');
+  const statusPill = document.getElementById('statusPill');
+  const timerEl = document.getElementById('timer');
   const endBtn = document.getElementById('endBtn');
   const muteBtn = document.getElementById('muteBtn');
-  const muteIcon = document.getElementById('muteIcon');
-  const ring = document.getElementById('ring');
-  const talkPill = document.getElementById('talkPill');
+  const micOn = document.getElementById('micOn');
+  const micOff = document.getElementById('micOff');
 
+  // ——— State ———
   let callActive = false;
   let muted = false;
-  let currentSessionId = null;
-
-  // --- Real-time Audio Handling Globals ---
-  let socket;
-  let mediaRecorder;
-  let audioContext;
+  let sessionId = null;
+  let ws = null;
+  let mediaRecorder = null;
+  let micStream = null;
+  let audioContext = null;
   let audioQueue = [];
   let isPlaying = false;
-  
-  // --- UI Functions ---
-  function showCallUI() {
-    callOverlay.classList.add('show');
-    callOverlay.setAttribute('aria-hidden', 'false');
-    callActive = true;
-    onCallStart(); 
+  let startedAt = 0;
+  let timerInterval = null;
+
+  function showOverlay(){
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+  }
+  function hideOverlay(){
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
   }
 
-  function hideCallUI() {
-    callOverlay.classList.remove('show');
-    callOverlay.setAttribute('aria-hidden', 'true');
-    callActive = false;
-    onCallEnd();
+  function formatTime(ms){
+    const total = Math.floor(ms / 1000);
+    const m = String(Math.floor(total / 60)).padStart(2,'0');
+    const s = String(total % 60).padStart(2,'0');
+    return `${m}:${s}`;
   }
 
-  // --- Event Listeners ---
-  startBtn.addEventListener('click', showCallUI);
-  endBtn.addEventListener('click', hideCallUI);
+  function startTimer(){
+    startedAt = Date.now();
+    timerEl.textContent = '00:00';
+    timerInterval = setInterval(() => {
+      timerEl.textContent = formatTime(Date.now() - startedAt);
+    }, 1000);
+  }
+  function stopTimer(){
+    clearInterval(timerInterval); timerInterval = null;
+  }
 
-  muteBtn.addEventListener('click', () => {
-    muted = !muted;
-    muteBtn.setAttribute('aria-pressed', String(muted));
-    if (mediaRecorder && mediaRecorder.stream) {
-        mediaRecorder.stream.getAudioTracks().forEach(track => track.enabled = !muted);
+  async function startCall(){
+    if (N8N_START_URL.includes('YOUR-N8N-DOMAIN')){
+      alert('Configure N8N_START_URL before using.');
+      return;
     }
-    // Visual feedback for mute can be added here
-
-    // ==================================================================
-    // 3. N8N WEBHOOK FOR MUTE/UNMUTE (Optional)
-    // You can add a webhook call here to notify your n8n backend
-    // whenever the user mutes or unmutes their microphone. This is
-    // useful for logging or analytics.
-    // ==================================================================
-    /*
-    fetch('YOUR_N8N_MUTE_WEBHOOK_URL_HERE', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        sessionId: currentSessionId,
-        muted: muted 
-      })
-    }).catch(err => console.error('Mute webhook failed:', err));
-    */
-  });
-
-  // --- n8n Webhook Integration ---
-  async function onCallStart() {
     startBtn.disabled = true;
-    startBtn.innerHTML = 'Connecting...';
-    talkPill.textContent = 'Initializing Session...';
+    startBtn.textContent = 'Connecting…';
+    statusPill.textContent = 'Initializing…';
+    showOverlay();
 
-    // ==================================================================
-    // 1. N8N WEBHOOK FOR START CALL
-    // This is the primary webhook that initiates the entire session.
-    // Replace the placeholder URL with your actual n8n "Start Call"
-    // webhook URL (e.g., from ngrok).
-    // ==================================================================
-    const startCallUrl = 'https://nonevilly-psychogenetic-genie.ngrok-free.dev/webhook-test/start-call';
-
-    // NEW: Check to prevent running with the placeholder URL.
-    if (startCallUrl.includes('YOUR_N8N_START_CALL_WEBHOOK_URL_HERE')) {
-      talkPill.textContent = 'Error: Configure Webhook URL';
-      console.error("CRITICAL: You must replace 'YOUR_N8N_START_CALL_WEBHOOK_URL_HERE' in the script.");
-      setTimeout(hideCallUI, 4000); // Give user time to see the error
-      return; // Stop execution
-    }
-
-    try {
-      const response = await fetch(startCallUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'user-123' })
-      });
-      if (!response.ok) throw new Error(`Webhook handshake failed: ${response.status}`);
-      
-      const data = await response.json();
-      talkPill.textContent = 'Session created. Connecting...';
-
-      // NEW: The n8n workflow MUST return a sessionId and a wsUrl.
-      if (data.sessionId && data.wsUrl) {
-        currentSessionId = data.sessionId;
-        // The wsUrl should be provided by your n8n workflow.
-        // Example: "wss://your-ngrok-id.ngrok-free.app/webhook-ws/some-session-id"
-        initializeAudio(data.wsUrl);
-      } else {
-        // NEW: Throw a specific error if the response from n8n is missing required data.
-        throw new Error("Invalid response from n8n: Missing sessionId or wsUrl.");
+    try{
+      // Pre-create/resume audio context on user gesture for autoplay policies
+      if (!audioContext){
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioContext.state === 'suspended'){
+        await audioContext.resume();
       }
 
-    } catch (err) {
-      console.error('Error starting call:', err);
-      // NEW: Display the actual error to the user for easier debugging.
-      talkPill.textContent = `Error: ${err.message}`;
-      setTimeout(hideCallUI, 4000); // Give user time to see the error
+      const res = await fetch(N8N_START_URL,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId: USER_ID })
+      });
+      if(!res.ok) throw new Error(`Start webhook failed: ${res.status}`);
+      const data = await res.json();
+      if(!data.sessionId || !data.wsUrl) throw new Error('Invalid start response: missing sessionId or wsUrl');
+      sessionId = data.sessionId;
+      statusPill.textContent = 'Requesting mic…';
+
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Mic capture as Opus (browser default) — your backend must decode it
+      mediaRecorder = new MediaRecorder(micStream, { mimeType: 'audio/webm;codecs=opus' });
+
+      ws = new WebSocket(data.wsUrl);
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        statusPill.textContent = 'Connected. You can talk';
+        callActive = true;
+        // start sending mic
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN){
+            ws.send(e.data);
+          }
+        };
+        mediaRecorder.start(250); // 250ms chunks
+        startTimer();
+      };
+
+      ws.onmessage = async (event) => {
+        try{
+          let buf;
+          if (event.data instanceof ArrayBuffer){
+            buf = event.data;
+          } else if (event.data instanceof Blob){
+            buf = await event.data.arrayBuffer();
+          } else if (typeof event.data === 'string'){
+            // If backend sends base64 audio strings
+            const b = atob(event.data);
+            const len = b.length; const arr = new Uint8Array(len);
+            for(let i=0;i<len;i++) arr[i] = b.charCodeAt(i);
+            buf = arr.buffer;
+          }
+          if (buf) {
+            audioQueue.push(buf);
+            if (!isPlaying) playNext();
+          }
+        } catch(err){
+          console.error('onmessage error:', err);
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error('WebSocket error', e);
+        statusPill.textContent = 'Connection error';
+      };
+
+      ws.onclose = () => {
+        if (callActive) endCall(false);
+      };
+
+    } catch(err){
+      console.error(err);
+      statusPill.textContent = `Error: ${err.message}`;
+      setTimeout(() => { endCall(false); }, 2000);
     } finally {
-        startBtn.disabled = false;
-        startBtn.innerHTML = `<svg class="phone-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16.5v3a1.5 1.5 0 0 1-1.65 1.493C16.99 21.03 10.97 18 6.507 13.53 2.03 9.05 0 3.03 0 1.65A1.5 1.5 0 0 1 1.493 0h3A1.5 1.5 0 0 1 6 1.493c0 .27.033.538.098.797.246 1.02 1.02 2.95 3.19 5.12 2.17 2.17 4.1 2.94 5.12 3.19.26.066.527.099.797.099A1.5 1.5 0 0 1 17.507 12h3A1.5 1.5 0 0 1 22 13.493v3z" fill="#fff"/></svg> Start`;
+      startBtn.disabled = false;
+      startBtn.textContent = 'Talk';
     }
   }
 
-  function onCallEnd() {
-    // Stop microphone and WebSocket
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-    }
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close();
-    }
-    if(audioContext) {
-        audioContext.close();
-    }
-    talkPill.textContent = 'Call Ended';
-
-    // ==================================================================
-    // 2. N8N WEBHOOK FOR END CALL
-    // It's good practice to notify your backend when the call has ended.
-    // This allows you to clean up resources or finalize logs.
-    // Uncomment the code below and add your "End Call" webhook URL.
-    // ==================================================================
-    /*
-    if (currentSessionId) {
-      fetch('YOUR_N8N_END_CALL_WEBHOOK_URL_HERE', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSessionId })
-      }).catch(err => console.error('End call webhook failed:', err));
-    }
-    */
-  }
-
-  // --- Real-Time Audio (WebSockets & Web Audio API) ---
-  async function initializeAudio(wsUrl) {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        socket = new WebSocket(wsUrl);
-        socket.binaryType = 'arraybuffer';
-
-        socket.onopen = () => {
-            console.log("WebSocket connected. Starting microphone.");
-            talkPill.textContent = 'You can talk now';
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-            
-            mediaRecorder.ondataavailable = event => {
-                if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
-                    socket.send(event.data);
-                }
-            };
-            
-            mediaRecorder.start(250); // Send data every 250ms
-        };
-
-        socket.onmessage = (event) => {
-            // Assume server sends back audio data (e.g., base64 encoded or raw buffer)
-            const audioData = event.data;
-            audioQueue.push(audioData);
-            if (!isPlaying) {
-                playNextAudioChunk();
-            }
-        };
-
-        socket.onclose = () => {
-            console.log("WebSocket disconnected.");
-            if (callActive) hideCallUI();
-        };
-
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-            talkPill.textContent = 'Connection Error';
-        };
-
-    } catch (err) {
-        console.error("Error accessing microphone:", err);
-        talkPill.textContent = 'Microphone access denied.';
-    }
-  }
-
-  async function playNextAudioChunk() {
-    if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-    }
+  async function playNext(){
+    if (!audioQueue.length){ isPlaying = false; return; }
     isPlaying = true;
-
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    
-    const audioData = audioQueue.shift();
-    try {
-        // The server must send audio in a format the browser can decode, like WAV or MP3.
-        // The ArrayBuffer received from the WebSocket is decoded here.
-        const audioBuffer = await audioContext.decodeAudioData(audioData);
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
-        source.onended = playNextAudioChunk; // Play the next chunk when this one finishes
-        source.start();
-        talkPill.textContent = '...'; // AI is speaking
-    } catch (e) {
-        console.error("Error decoding audio data:", e);
-        isPlaying = false; // Try to recover by playing the next chunk
-        playNextAudioChunk();
+    try{
+      const buf = audioQueue.shift();
+      // Decode (expecting audio/mpeg or audio/wav payloads)
+      const audioBuffer = await audioContext.decodeAudioData(buf.slice(0));
+      const src = audioContext.createBufferSource();
+      src.buffer = audioBuffer; src.connect(audioContext.destination);
+      src.onended = () => playNext();
+      src.start();
+      statusPill.textContent = 'Speaking…';
+    } catch(err){
+      console.warn('Decode failed, skipping chunk', err);
+      // Try the next chunk
+      playNext();
     }
   }
-</script>
 
+  function toggleMute(){
+    muted = !muted;
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    micOn.style.display = muted ? 'none' : '';
+    micOff.style.display = muted ? '' : 'none';
+    if (micStream){
+      micStream.getAudioTracks().forEach(t => t.enabled = !muted);
+    }
+    // Optional: notify backend
+    // fetch('https://YOUR-N8N-DOMAIN/webhook/mute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sessionId, muted })}).catch(()=>{});
+  }
+
+  function endCall(userInitiated = true){
+    callActive = false;
+    stopTimer();
+    statusPill.textContent = userInitiated ? 'Call ended' : 'Disconnected';
+
+    try{ if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }catch{}
+    try{ if (micStream) micStream.getTracks().forEach(t => t.stop()); }catch{}
+    try{ if (ws && ws.readyState === WebSocket.OPEN) ws.close(1000,'client-end'); }catch{}
+
+    // Clear playback state
+    audioQueue = []; isPlaying = false;
+
+    if (audioContext && audioContext.state !== 'closed'){
+      // keep context alive to avoid warm-up on next connect
+    }
+    if (sessionId && N8N_END_URL && !N8N_END_URL.includes('YOUR-N8N-DOMAIN')){
+      fetch(N8N_END_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId})}).catch(()=>{});
+    }
+
+    // Close UI after a short delay
+    setTimeout(() => { hideOverlay(); }, 500);
+  }
+
+  // ——— Events ———
+  startBtn.addEventListener('click', startCall);
+  endBtn.addEventListener('click', () => endCall(true));
+  muteBtn.addEventListener('click', toggleMute);
+
+  // Escape closes overlay
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('show')) endCall(true); });
+})();
+</script>
 </body>
 </html>
-
-
-
-
-
