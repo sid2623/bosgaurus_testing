@@ -996,8 +996,7 @@
                     // Send to n8n webhook
                     const response = await this.sendToN8n(message);
                     
-                    // Simulate processing delay
-                    await new Promise(resolve => setTimeout(resolve, 30000));
+                    
                     
                     this.hideTyping();
                     
@@ -1040,6 +1039,31 @@
 
                 return await response.json();
             }
+          // 3) Make sendToN8n robust to JSON or text + add console logs
+async sendToN8n(message) {
+  const payload = {
+    message,
+    timestamp: new Date().toISOString(),
+    sessionId: this.getSessionId(),
+    agent: 'jute'
+  };
+
+  const res = await fetch(this.n8nWebhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const raw = await res.text();
+  let data;
+  try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
+
+  console.log('n8n response:', data); // <— watch DevTools console
+  return data;
+}
+
 
             addMessage(sender, content) {
                 const messageDiv = document.createElement('div');
